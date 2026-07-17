@@ -61,6 +61,8 @@ const map = new maplibregl.Map({
 });
 map.touchPitch.disable();
 map.keyboard.enable();
+// Test hook: lets e2e specs assert on map state (center, layers).
+(window as unknown as { __map: maplibregl.Map }).__map = map;
 map.on("error", (e) => {
   // Basemap/tile errors shouldn't kill the app; the forecast overlay works
   // without them.

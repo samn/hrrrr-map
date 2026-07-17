@@ -18,6 +18,8 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     trace: "retain-on-failure",
+    timezoneId: "America/Denver",
+    locale: "en-US",
   },
   projects: [
     {
@@ -31,13 +33,15 @@ export default defineConfig({
       name: "webkit-iphone",
       use: {
         ...devices["iPhone 14"],
+        // Keep committed snapshots small; layout is what we're guarding.
+        deviceScaleFactor: 1,
       },
     },
   ],
   webServer: {
-    command: "npm run preview",
+    command: "npm run build && npm run preview",
     url: "http://localhost:4173",
     reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
+    timeout: 120_000,
   },
 });

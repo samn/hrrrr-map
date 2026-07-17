@@ -1,0 +1,201 @@
+{
+ "recordedAt": "2026-07-17T01:15:50.941Z",
+ "initTimeMs": 1784224800000,
+ "initTimeIso": "2026-07-16T18:00:00.000Z",
+ "latestInitIndex": 11701,
+ "coarseLeads": [
+  0,
+  6,
+  12,
+  18,
+  24,
+  30,
+  36,
+  42,
+  48
+ ],
+ "entries": [
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/repo",
+   "range": "",
+   "status": 200,
+   "file": "3fa8daa0c36890cac303.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/snapshots/SMTE4WCQDY5H16C3S1EG",
+   "range": "",
+   "status": 200,
+   "file": "2dbff999bd269e16a852.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/manifests/PZS90JBSG8H62EHGRQQG",
+   "range": "",
+   "status": 200,
+   "file": "1c67133201ecb45aba46.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/chunks/Y6PJ6HSXEDB1Y4A9Z61G",
+   "range": "bytes=0-3045",
+   "status": 206,
+   "file": "8a12e655864a13706be2.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/manifests/RQPWCS89XENP0N1RY1VG",
+   "range": "",
+   "status": 200,
+   "file": "773f31f2c999e0bec727.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/manifests/KKVCR5EH5JNQVMECDP10",
+   "range": "",
+   "status": 200,
+   "file": "f9dabe68c04f00d874df.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf48.grib2",
+   "range": "bytes=53943421-53943421",
+   "status": 206,
+   "file": "62bfa021fe58c2dd9c07.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf00.grib2",
+   "range": "bytes=42708614-43337193",
+   "status": 206,
+   "file": "a82a13fe12ccc9fa4084.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf06.grib2",
+   "range": "bytes=53946597-54551732",
+   "status": 206,
+   "file": "3a9fc25866c5dd5df1de.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf12.grib2",
+   "range": "bytes=51509817-52105566",
+   "status": 206,
+   "file": "9d5f3762a51a9651cf9e.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf18.grib2",
+   "range": "bytes=51548671-52322542",
+   "status": 206,
+   "file": "c2695fe3b3d5c7884864.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf24.grib2",
+   "range": "bytes=52569622-53145058",
+   "status": 206,
+   "file": "e4d498f6e421d72c7abb.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf30.grib2",
+   "range": "bytes=55695183-56260869",
+   "status": 206,
+   "file": "e056bae03ce034be53eb.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf36.grib2",
+   "range": "bytes=53348262-54049947",
+   "status": 206,
+   "file": "85ccd88ae619d4126ed0.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf42.grib2",
+   "range": "bytes=51758166-52609893",
+   "status": 206,
+   "file": "6db290f7e9a1a8e9a0e4.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf48.grib2",
+   "range": "bytes=53943421-54633185",
+   "status": 206,
+   "file": "2e8a486baec9ab67fa91.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://dynamical-noaa-hrrr.s3.amazonaws.com/noaa-hrrr-forecast-48-hour-virtual/v0.5.0.icechunk/manifests/WH4F3K15BSN9Q6TTZ93G",
+   "range": "",
+   "status": 200,
+   "file": "bfbc74a4e5ddeb3686fd.bin",
+   "contentType": "application/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf00.grib2",
+   "range": "bytes=51000270-51000457",
+   "status": 206,
+   "file": "e9285d1beca45f959504.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf06.grib2",
+   "range": "bytes=63337588-63411916",
+   "status": 206,
+   "file": "09bf561d927c86e156ac.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf12.grib2",
+   "range": "bytes=60549223-60599967",
+   "status": 206,
+   "file": "360025ca9518027c9cd8.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf18.grib2",
+   "range": "bytes=61270828-61326914",
+   "status": 206,
+   "file": "8a3611a1418799329df6.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf24.grib2",
+   "range": "bytes=61767856-61823564",
+   "status": 206,
+   "file": "75f58eaf01097abb4e9e.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf30.grib2",
+   "range": "bytes=65110228-65196342",
+   "status": 206,
+   "file": "20f8bb7ec0827fd306fe.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf36.grib2",
+   "range": "bytes=63117295-63186235",
+   "status": 206,
+   "file": "1cf6c32a6889134920ce.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf42.grib2",
+   "range": "bytes=61703749-61780570",
+   "status": 206,
+   "file": "9ab783347c24e5e74270.bin",
+   "contentType": "binary/octet-stream"
+  },
+  {
+   "url": "https://noaa-hrrr-bdp-pds.s3.us-east-1.amazonaws.com/hrrr.20260716/conus/hrrr.t18z.wrfsfcf48.grib2",
+   "range": "bytes=63372834-63453430",
+   "status": 206,
+   "file": "c62a508a1057bd4c6c43.bin",
+   "contentType": "binary/octet-stream"
+  }
+ ]
+}
