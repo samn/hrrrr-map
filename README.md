@@ -76,6 +76,40 @@ Or connect the repo to Cloudflare Pages with build command `npm run build`
 and output directory `dist`. `public/_headers` sets immutable caching for
 hashed assets. No environment variables or server functions are required.
 
+### PR preview deployments
+
+Non-production branches are deployed by Cloudflare Workers Builds as **preview
+versions** (production traffic on `main` is untouched). Each preview is pinned
+to a **stable, branch-derived alias** so its URL is predictable, and
+`.github/workflows/preview-link.yml` posts that URL on the PR. The workflow
+holds **no Cloudflare credentials** — Cloudflare does the deploy; the workflow
+only reconstructs the URL and comments it — so a fork PR has no secret to
+reach (and is skipped anyway).
+
+One-time setup in the **Cloudflare dashboard** (Worker → Settings → Build):
+
+1. **Branch control** → keep "Builds for non-production branches" enabled.
+2. **Build configuration → Version command** — set it to assign the alias from
+   the branch name (this is what makes the URL predictable):
+
+   ```sh
+   npx wrangler versions upload --preview-alias "pr-$(printf '%s' "$WORKERS_CI_BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-45)"
+   ```
+
+   ⚠️ The `pr-…` expression must stay **byte-for-byte identical** to the one in
+   `preview-link.yml`, or the reconstructed link won't resolve.
+3. Ensure **Preview URLs** are enabled for the Worker (Settings → Domains &
+   Routes), so aliases resolve at `<alias>-<worker>.<subdomain>.workers.dev`.
+
+One-time setup in **GitHub** — tell the workflow your workers.dev subdomain
+(not a secret; it's in every `*.workers.dev` URL you serve):
+
+```bash
+gh variable set WORKERS_SUBDOMAIN --body '<your-workers.dev-subdomain>'
+```
+
+The Deploy command stays `npx wrangler deploy` (production, `main` only).
+
 ## Data & attribution
 
 - Forecast data: [NOAA HRRR](https://rapidrefresh.noaa.gov/hrrr/), processed

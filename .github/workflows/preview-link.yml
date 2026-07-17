@@ -1,0 +1,83 @@
+name: Preview link
+
+# Posts the Cloudflare preview URL on a PR. It performs NO deploy and uses NO
+# Cloudflare credentials — Cloudflare's own Workers Builds integration deploys
+# the branch and assigns a stable preview alias; this workflow only rebuilds
+# that same (predictable) URL and comments it. Because there are no secrets to
+# expose, a malicious PR has nothing to steal.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Only capability needed: comment on the PR. No `contents: write`, no secrets.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-link-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    # SECURITY: only run for branches pushed to THIS repo, never forks. A fork
+    # PR gets no Cloudflare preview (Workers Builds only builds this repo's
+    # branches) and its GITHUB_TOKEN is read-only regardless, so skip it and
+    # avoid posting a dead link.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      WORKER_NAME: hrrrr-map
+      # The account's workers.dev subdomain. NOT a secret (it appears in every
+      # *.workers.dev URL you serve), so it lives in a repo *variable*. Set it
+      # with:  gh variable set WORKERS_SUBDOMAIN --body '<your-subdomain>'
+      WORKERS_SUBDOMAIN: ${{ vars.WORKERS_SUBDOMAIN }}
+    steps:
+      - name: Compute preview alias and URL
+        id: url
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WORKERS_SUBDOMAIN}" ]; then
+            echo "::error::Repo variable WORKERS_SUBDOMAIN is unset. Run: gh variable set WORKERS_SUBDOMAIN --body '<your-workers.dev-subdomain>'"
+            exit 1
+          fi
+          # ⚠️ This alias expression MUST stay byte-for-byte identical to the
+          # --preview-alias argument in the Cloudflare dashboard Version command
+          # (see README), or the reconstructed URL won't resolve.
+          slug="$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-45)"
+          alias="pr-${slug}"
+          echo "alias=${alias}" >> "$GITHUB_OUTPUT"
+          echo "url=https://${alias}-${WORKER_NAME}.${WORKERS_SUBDOMAIN}.workers.dev" >> "$GITHUB_OUTPUT"
+
+      - name: Post or update the preview comment
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.url.outputs.url }}
+          PREVIEW_ALIAS: ${{ steps.url.outputs.alias }}
+        with:
+          script: |
+            const url = process.env.PREVIEW_URL;
+            const alias = process.env.PREVIEW_ALIAS;
+            const marker = '<!-- cf-preview-link -->';
+            const body = [
+              marker,
+              '### ⚡ Cloudflare preview',
+              '',
+              `▶︎ **${url}**`,
+              '',
+              `Stable alias \`${alias}\`, redeployed by Cloudflare Workers Builds on every push — give the build a few seconds to finish after each push.`,
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
