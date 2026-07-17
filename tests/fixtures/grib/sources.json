@@ -1,0 +1,18 @@
+{
+  "prate_f06.grib2": {
+    "source": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250612/conus/hrrr.t00z.wrfsfcf06.grib2",
+    "range": "bytes=62851707-62913065"
+  },
+  "prate_f24.grib2": {
+    "source": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250612/conus/hrrr.t00z.wrfsfcf24.grib2",
+    "range": "bytes=64462612-64548062"
+  },
+  "massden_f06.grib2": {
+    "source": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250612/conus/hrrr.t00z.wrfsfcf06.grib2",
+    "range": "bytes=52430086-53856036"
+  },
+  "massden_f24.grib2": {
+    "source": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20250612/conus/hrrr.t00z.wrfsfcf24.grib2",
+    "range": "bytes=54797296-55560542"
+  }
+}
