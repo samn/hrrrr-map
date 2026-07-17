@@ -190,12 +190,25 @@ worker.onerror = (e) => {
   ui.setStatus(`Could not load forecast data: ${e.message ?? "worker error"}`, true);
 };
 
+let locationMarker: maplibregl.Marker | null = null;
+
+function showLocationDot(lon: number, lat: number): void {
+  if (!locationMarker) {
+    const el = document.createElement("div");
+    el.className = "user-location-dot";
+    el.setAttribute("aria-label", "Your location");
+    locationMarker = new maplibregl.Marker({ element: el });
+  }
+  locationMarker.setLngLat([lon, lat]).addTo(map);
+}
+
 function requestLocation(fly: boolean): void {
   if (!("geolocation" in navigator)) return;
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { longitude, latitude } = pos.coords;
       if (!inHrrrDomain(longitude, latitude)) return;
+      showLocationDot(longitude, latitude);
       if (fly) {
         map.flyTo({ center: [longitude, latitude], zoom: LOCATED_ZOOM, duration: 1200 });
       } else {
