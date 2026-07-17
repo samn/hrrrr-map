@@ -22,9 +22,9 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     container:
-      # Pin the Playwright image to the installed @playwright/test version so
-      # visual snapshots render identically to the environment that created them.
-      image: mcr.microsoft.com/playwright:v1.61.1-noble
+      # Pin the Playwright image to the @playwright/test version (chromium build
+      # 1194) so visual snapshots render identically everywhere.
+      image: mcr.microsoft.com/playwright:v1.56.0-noble
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
