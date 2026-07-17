@@ -167,7 +167,10 @@ function parseGrid(s3: Uint8Array): { grid: GribGrid | null; numGridPoints: numb
 class BitReader {
   private byte = 0;
   private bit = 0;
-  constructor(private readonly buf: Uint8Array) {}
+  private readonly buf: Uint8Array;
+  constructor(buf: Uint8Array) {
+    this.buf = buf;
+  }
 
   read(nbits: number): number {
     let result = 0;

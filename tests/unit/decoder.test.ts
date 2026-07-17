@@ -21,7 +21,6 @@ describe("decodeGrib2Message vs gribberish oracle", () => {
       const t0 = performance.now();
       const decoded = decodeGrib2Message(bytes);
       const elapsed = performance.now() - t0;
-      // eslint-disable-next-line no-console
       console.log(`${name}: decoded ${decoded.values.length} points in ${elapsed.toFixed(1)}ms`);
 
       expect(decoded.values.length).toBe(oracleData.length);
