@@ -88,6 +88,10 @@ let renderQueued = false;
 
 map.on("load", () => {
   mapLoaded = true;
+  // Start with the compact attribution collapsed so it never covers the
+  // timeline on small screens (it stays one tap away behind the ⓘ button).
+  document.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
+  document.querySelector(".maplibregl-ctrl-attrib")?.removeAttribute("open");
   maybeAddLayers();
 });
 

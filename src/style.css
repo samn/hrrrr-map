@@ -137,7 +137,7 @@ body {
 .locate-btn {
   position: absolute;
   right: calc(10px + var(--safe-right));
-  bottom: calc(148px + var(--safe-bottom));
+  bottom: calc(196px + var(--safe-bottom));
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -309,7 +309,12 @@ body {
   background: rgba(120, 30, 30, 0.92);
 }
 
-/* MapLibre attribution: keep it readable but compact on phones */
+/* MapLibre attribution: keep it clear of the bottom control bar */
 .maplibregl-ctrl-attrib {
   font-size: 10px;
+}
+
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left {
+  bottom: calc(128px + var(--safe-bottom));
 }
