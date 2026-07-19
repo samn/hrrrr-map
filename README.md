@@ -85,6 +85,9 @@ hashed assets. No environment variables or server functions are required.
 - Basemap: [OpenFreeMap](https://openfreemap.org) /
   © [OpenMapTiles](https://openmaptiles.org) data from
   © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+- UI typeface: [IBM Plex Mono](https://github.com/IBM/plex)
+  ([OFL 1.1](https://openfontlicense.org)), self-hosted latin subset in
+  `public/fonts/`.
 - Smoke is HRRR's near-surface smoke tracer (`mass_density_8m`, µg/m³, ~8 m
   AGL); rain is instantaneous precipitation rate (`precipitation_rate_surface`,
   mm/hr). New forecasts are published every 6 hours (00/06/12/18 UTC); the app
