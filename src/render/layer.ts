@@ -1,40 +1,43 @@
 /**
- * A forecast overlay: an offscreen-painted canvas added to MapLibre as a
- * canvas source + raster layer. Repaints are a gather through the
- * reprojection index map and a palette LUT (see lib/reproject.ts).
+ * A forecast overlay: a canvas added to MapLibre as a canvas source + raster
+ * layer. The pixels are painted off-thread by the data worker (see
+ * worker/dataWorker.ts); this class only blits finished RGBA frames.
  */
 import type { CanvasSource, Map as MapLibreMap } from "maplibre-gl";
-import { paintFrame, type IndexMap } from "../lib/reproject.ts";
+
+/** Canvas geometry from the worker's reprojection map. */
+export interface OverlayPlacement {
+  width: number;
+  height: number;
+  /** Corner lon/lats: TL, TR, BR, BL. */
+  corners: [number, number][];
+}
 
 export class ForecastLayer {
   readonly id: string;
   private readonly map: MapLibreMap;
-  private readonly lut: Uint8ClampedArray;
-  private readonly indexMap: IndexMap;
+  private readonly placement: OverlayPlacement;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly imageData: ImageData;
   private pauseScheduled = false;
 
-  constructor(map: MapLibreMap, id: string, lut: Uint8ClampedArray, indexMap: IndexMap) {
+  constructor(map: MapLibreMap, id: string, placement: OverlayPlacement) {
     this.map = map;
     this.id = id;
-    this.lut = lut;
-    this.indexMap = indexMap;
+    this.placement = placement;
     this.canvas = document.createElement("canvas");
-    this.canvas.width = indexMap.width;
-    this.canvas.height = indexMap.height;
+    this.canvas.width = placement.width;
+    this.canvas.height = placement.height;
     const ctx = this.canvas.getContext("2d");
     if (!ctx) throw new Error("2d canvas context unavailable");
     this.ctx = ctx;
-    this.imageData = ctx.createImageData(indexMap.width, indexMap.height);
   }
 
   addTo(): void {
     this.map.addSource(this.id, {
       type: "canvas",
       canvas: this.canvas,
-      coordinates: this.indexMap.corners as [
+      coordinates: this.placement.corners as [
         [number, number],
         [number, number],
         [number, number],
@@ -54,9 +57,10 @@ export class ForecastLayer {
     });
   }
 
-  render(frameA: Uint8Array, frameB: Uint8Array | null, blend: number): void {
-    paintFrame(this.indexMap, this.lut, this.imageData.data, frameA, frameB, blend);
-    this.ctx.putImageData(this.imageData, 0, 0);
+  /** Blit worker-painted RGBA pixels; the caller may reuse the buffer after. */
+  render(pixels: Uint8ClampedArray<ArrayBuffer>): void {
+    if (pixels.length !== this.placement.width * this.placement.height * 4) return;
+    this.ctx.putImageData(new ImageData(pixels, this.placement.width, this.placement.height), 0, 0);
     this.refresh();
   }
 

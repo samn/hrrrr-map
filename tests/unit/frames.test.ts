@@ -14,8 +14,8 @@ describe("FrameStore.neighbors", () => {
 
   it("brackets t between the nearest loaded frames", () => {
     const fs = new FrameStore(["precip"], HOURS);
-    fs.addFrame("precip", 6, new Uint8Array(1));
-    fs.addFrame("precip", 12, new Uint8Array(1));
+    fs.markLoaded("precip", 6);
+    fs.markLoaded("precip", 12);
     const n = fs.neighbors("precip", 9)!;
     expect(n.a).toBe(6);
     expect(n.b).toBe(12);
@@ -24,9 +24,9 @@ describe("FrameStore.neighbors", () => {
 
   it("uses tighter brackets as more frames load", () => {
     const fs = new FrameStore(["precip"], HOURS);
-    fs.addFrame("precip", 6, new Uint8Array(1));
-    fs.addFrame("precip", 12, new Uint8Array(1));
-    fs.addFrame("precip", 9, new Uint8Array(1));
+    fs.markLoaded("precip", 6);
+    fs.markLoaded("precip", 12);
+    fs.markLoaded("precip", 9);
     const n = fs.neighbors("precip", 9.5)!;
     expect(n.a).toBe(9);
     expect(n.b).toBe(12);
@@ -35,7 +35,7 @@ describe("FrameStore.neighbors", () => {
 
   it("clamps to a single frame at the edges", () => {
     const fs = new FrameStore(["precip"], HOURS);
-    fs.addFrame("precip", 6, new Uint8Array(1));
+    fs.markLoaded("precip", 6);
     expect(fs.neighbors("precip", 3)).toEqual({ a: 6, b: 6, blend: 0 });
     expect(fs.neighbors("precip", 20)).toEqual({ a: 6, b: 6, blend: 0 });
     expect(fs.neighbors("precip", 6)).toEqual({ a: 6, b: 6, blend: 0 });
@@ -45,13 +45,15 @@ describe("FrameStore.neighbors", () => {
     const fs = new FrameStore(["a", "b"], HOURS);
     let calls = 0;
     fs.onFrame(() => calls++);
-    fs.addFrame("a", 0, new Uint8Array(1));
-    fs.addFrame("b", 0, new Uint8Array(1));
-    fs.addFrame("a", 480, new Uint8Array(1)); // out of range: ignored
+    fs.markLoaded("a", 0);
+    fs.markLoaded("b", 0);
+    fs.markLoaded("a", 480); // out of range: ignored
     expect(calls).toBe(2);
     expect(fs.loadedCount("a")).toBe(1);
+    expect(fs.isLoaded("a", 0)).toBe(true);
+    expect(fs.isLoaded("a", 6)).toBe(false);
     expect(fs.isAnimatable("a")).toBe(false);
-    fs.addFrame("a", 6, new Uint8Array(1));
+    fs.markLoaded("a", 6);
     expect(fs.isAnimatable("a")).toBe(true);
   });
 });

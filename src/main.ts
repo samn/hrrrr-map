@@ -2,15 +2,12 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { BASEMAP_STYLE_URL, LAYERS, PRECIP_LAYER, SMOKE_LAYER, STORE_URL } from "./config.ts";
-import { makeLut, PRECIP_COLORMAP, SMOKE_COLORMAP } from "./lib/colormap.ts";
+import { PRECIP_COLORMAP, SMOKE_COLORMAP } from "./lib/colormap.ts";
 import { FrameStore } from "./lib/frames.ts";
-import type { IndexMap } from "./lib/reproject.ts";
 import { Timeline } from "./lib/timeline.ts";
-import { ForecastLayer } from "./render/layer.ts";
+import { ForecastLayer, type OverlayPlacement } from "./render/layer.ts";
 import { AppUI } from "./ui/ui.ts";
-import type { MainToWorker, WorkerToMain } from "./worker/protocol.ts";
-
-const COLORMAPS = { smoke: SMOKE_COLORMAP, precip: PRECIP_COLORMAP } as const;
+import type { MainToWorker, PaintJob, WorkerToMain } from "./worker/protocol.ts";
 
 const params = new URLSearchParams(location.search);
 const autoplay = params.get("autoplay") !== "0";
@@ -83,7 +80,7 @@ worker.postMessage({
 let frameStore: FrameStore | null = null;
 let initTime: Date | null = null;
 const forecastLayers = new Map<string, ForecastLayer>();
-let indexMap: IndexMap | null = null;
+let placement: OverlayPlacement | null = null;
 let started = false;
 let mapLoaded = false;
 let renderQueued = false;
@@ -98,31 +95,59 @@ map.on("load", () => {
 });
 
 function maybeAddLayers(): void {
-  if (!mapLoaded || !indexMap || forecastLayers.size > 0) return;
+  if (!mapLoaded || !placement || forecastLayers.size > 0) return;
   // Smoke below precip so rain cells stay readable over smoke plumes.
   for (const config of [SMOKE_LAYER, PRECIP_LAYER]) {
-    const layer = new ForecastLayer(map, config.id, makeLut(COLORMAPS[config.id]), indexMap);
+    const layer = new ForecastLayer(map, config.id, placement);
     layer.addTo();
     forecastLayers.set(config.id, layer);
   }
   renderFrames();
 }
 
+/**
+ * Crossfade steps per frame interval. Coarser steps mean fewer worker
+ * repaints during playback; 1/8 steps are invisible at playback speed.
+ */
+const BLEND_STEPS = 8;
+
+/** Per-layer key of the frame pair + blend the canvas currently shows. */
+const painted = new Map<string, string>();
+let paintInFlight = false;
+/** Spent RGBA buffers cycling back to the worker to avoid reallocation. */
+const pixelPool: ArrayBuffer[] = [];
+
 function renderFrames(): void {
-  if (renderQueued || !frameStore) return;
+  if (renderQueued) return;
   renderQueued = true;
   requestAnimationFrame(() => {
     renderQueued = false;
-    if (!frameStore) return;
-    for (const [id, layer] of forecastLayers) {
-      if (!enabled.get(id)) continue;
-      const n = frameStore.neighbors(id, timeline.t);
-      if (!n) continue;
-      const a = frameStore.getFrame(id, n.a)!;
-      const b = n.b !== n.a ? frameStore.getFrame(id, n.b) : null;
-      layer.render(a, b, n.blend);
-    }
+    requestPaint();
   });
+}
+
+/**
+ * Ask the worker to repaint any visible layer whose bracketing frames or
+ * quantized blend changed. At most one request is in flight; timeline moves
+ * during a paint are picked up when the response lands.
+ */
+function requestPaint(): void {
+  if (paintInFlight || !frameStore) return;
+  const jobs: PaintJob[] = [];
+  for (const id of forecastLayers.keys()) {
+    if (!enabled.get(id)) continue;
+    const n = frameStore.neighbors(id, timeline.t);
+    if (!n) continue;
+    const blend = n.a === n.b ? 0 : Math.round(n.blend * BLEND_STEPS) / BLEND_STEPS;
+    const key = `${n.a}:${n.b}:${blend}`;
+    if (painted.get(id) === key) continue;
+    painted.set(id, key);
+    jobs.push({ layerId: id, a: n.a, b: n.b, blend });
+  }
+  if (jobs.length === 0) return;
+  paintInFlight = true;
+  const recycle = pixelPool.splice(0, jobs.length);
+  worker.postMessage({ type: "paint", jobs, recycle } satisfies MainToWorker, recycle);
 }
 
 function updateTimeUI(): void {
@@ -146,10 +171,9 @@ worker.onmessage = (ev: MessageEvent<WorkerToMain>) => {
         msg.leadHours,
       );
       frameStore.onFrame(renderFrames);
-      indexMap = {
+      placement = {
         width: msg.indexWidth,
         height: msg.indexHeight,
-        indices: msg.indices,
         corners: msg.corners,
       };
       const maxHours = msg.leadHours[msg.leadHours.length - 1] ?? 48;
@@ -161,8 +185,18 @@ worker.onmessage = (ev: MessageEvent<WorkerToMain>) => {
       worker.postMessage({ type: "loadAll" } satisfies MainToWorker);
       break;
     }
-    case "frame": {
-      frameStore?.addFrame(msg.layerId, msg.leadIndex, msg.data);
+    case "frameLoaded": {
+      frameStore?.markLoaded(msg.layerId, msg.leadIndex);
+      break;
+    }
+    case "painted": {
+      paintInFlight = false;
+      for (const f of msg.frames) {
+        forecastLayers.get(f.layerId)?.render(f.pixels);
+        pixelPool.push(f.pixels.buffer);
+      }
+      // Catch up on anything that changed while this paint was in flight.
+      requestPaint();
       break;
     }
     case "progress": {
