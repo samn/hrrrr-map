@@ -33,23 +33,20 @@ export interface IndexMap {
   corners: [number, number][];
 }
 
-/**
- * Build the canvas-pixel → grid-cell index map. The canvas spans the grid's
- * bounding box in mercator space; pixels outside the grid get index -1.
- *
- * `gridNy`/`gridNx` are the dimensions of the (possibly downsampled) data
- * frames the indices point into.
- */
-export function buildIndexMap(
-  grid: LccGrid,
-  canvasWidth: number,
-  gridNy: number,
-  gridNx: number,
-): IndexMap {
-  const tf = makeGridTransform(grid);
+/** Normalized-mercator bounding box of a grid's (curved) outline. */
+export interface MercatorBounds {
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+}
 
-  // The grid edges are curves in mercator space; walk all four edges to get
-  // a tight bounding box.
+/**
+ * The grid edges are curves in mercator space; walk all four edges to get a
+ * tight bounding box.
+ */
+export function gridMercatorBounds(grid: LccGrid): MercatorBounds {
+  const tf = makeGridTransform(grid);
   let xMin = Infinity;
   let xMax = -Infinity;
   let yMin = Infinity;
@@ -72,6 +69,24 @@ export function buildIndexMap(
   }
   scan(grid.nx - 1, 0);
   scan(grid.nx - 1, grid.ny - 1);
+  return { xMin, xMax, yMin, yMax };
+}
+
+/**
+ * Build the canvas-pixel → grid-cell index map. The canvas spans the grid's
+ * bounding box in mercator space; pixels outside the grid get index -1.
+ *
+ * `gridNy`/`gridNx` are the dimensions of the (possibly downsampled) data
+ * frames the indices point into.
+ */
+export function buildIndexMap(
+  grid: LccGrid,
+  canvasWidth: number,
+  gridNy: number,
+  gridNx: number,
+): IndexMap {
+  const tf = makeGridTransform(grid);
+  const { xMin, xMax, yMin, yMax } = gridMercatorBounds(grid);
 
   const width = canvasWidth;
   const height = Math.max(1, Math.round((canvasWidth * (yMax - yMin)) / (xMax - xMin)));

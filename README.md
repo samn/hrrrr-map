@@ -25,10 +25,13 @@ centered on your location. All data is read directly in the browser from
    first — playable after ~5 MB — then 3 h, then hourly; ~35 MB total).
    Fields are quantized to log-scale bytes (block-max downsampled 2× on
    phones).
-4. Frames render through a precomputed **Lambert-conformal → web-mercator
-   index map** into MapLibre canvas sources: each repaint is a gather + RGBA
-   LUT with byte-space crossfade, so scrubbing and animation stay smooth on
-   mobile GPUs.
+4. Frames render on the **GPU** via a MapLibre custom layer: a fragment
+   shader inverts each screen pixel through the Lambert conformal projection,
+   crossfades two quantized frame textures, and applies the palette LUT — so
+   animation costs the CPU almost nothing. Where WebGL2 (or the shader) won't
+   initialize, a fallback renderer paints frames in the worker through a
+   precomputed **Lambert-conformal → web-mercator index map** and blits them
+   into MapLibre canvas sources (`?gpu=0`/`?gpu=1` force a renderer).
 
 ## Develop
 

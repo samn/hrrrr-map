@@ -28,6 +28,7 @@ let dataset: HrrrDataset | null = null;
 let layers: LayerState[] = [];
 let indexMap: IndexMap | null = null;
 let downsample = 1;
+let sendFrameBytes = false;
 let frameNy = 0;
 let frameNx = 0;
 
@@ -100,8 +101,15 @@ async function handleLoadAll() {
           job.leadIndex,
         );
         const q = quantizeField(job.layer.quantizer, values, ny, nx, downsample);
-        job.layer.frames[job.leadIndex] = q.data;
-        post({ type: "frameLoaded", layerId: job.layer.config.id, leadIndex: job.leadIndex });
+        if (sendFrameBytes) {
+          post(
+            { type: "frameLoaded", layerId: job.layer.config.id, leadIndex: job.leadIndex, data: q.data },
+            [q.data.buffer],
+          );
+        } else {
+          job.layer.frames[job.leadIndex] = q.data;
+          post({ type: "frameLoaded", layerId: job.layer.config.id, leadIndex: job.leadIndex });
+        }
       } catch (e) {
         post({
           type: "frameError",
@@ -156,6 +164,7 @@ self.onmessage = (ev: MessageEvent<MainToWorker>) => {
   const fail = (e: unknown) =>
     post({ type: "error", message: e instanceof Error ? e.message : String(e) });
   if (msg.type === "open") {
+    sendFrameBytes = msg.sendFrameBytes;
     handleOpen(msg.storeUrl, msg.layerIds, msg.downsample, msg.canvasWidth).catch(fail);
   } else if (msg.type === "loadAll") {
     handleLoadAll().catch(fail);

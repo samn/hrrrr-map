@@ -2,15 +2,28 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { BASEMAP_STYLE_URL, LAYERS, PRECIP_LAYER, SMOKE_LAYER, STORE_URL } from "./config.ts";
-import { PRECIP_COLORMAP, SMOKE_COLORMAP } from "./lib/colormap.ts";
+import { makeLut, PRECIP_COLORMAP, SMOKE_COLORMAP } from "./lib/colormap.ts";
 import { FrameStore } from "./lib/frames.ts";
+import { HRRR_GRID } from "./lib/lcc.ts";
 import { Timeline } from "./lib/timeline.ts";
+import { GpuForecastLayer, gpuRendererSupported } from "./render/gpuLayer.ts";
 import { ForecastLayer, type OverlayPlacement } from "./render/layer.ts";
 import { AppUI } from "./ui/ui.ts";
 import type { MainToWorker, PaintJob, WorkerToMain } from "./worker/protocol.ts";
 
+const COLORMAPS = { smoke: SMOKE_COLORMAP, precip: PRECIP_COLORMAP } as const;
+
 const params = new URLSearchParams(location.search);
 const autoplay = params.get("autoplay") !== "0";
+/**
+ * GPU renderer (reprojection + crossfade + palette in a custom-layer shader)
+ * by default; the worker-painted canvas renderer is the fallback when WebGL2
+ * or the shader won't initialize. `?gpu=1`/`?gpu=0` force a renderer.
+ */
+const gpuParam = params.get("gpu");
+const useGpu = gpuParam === "0" ? false : gpuParam === "1" ? true : gpuRendererSupported();
+// Test hook: lets e2e specs assert on renderer selection.
+(window as unknown as { __renderer: string }).__renderer = useGpu ? "gpu" : "canvas";
 
 // CONUS overview used until (and unless) we get a location fix.
 const CONUS_CENTER: [number, number] = [-97.5, 39.0];
@@ -41,6 +54,7 @@ const ui = new AppUI(
     onLayerToggle: (id, on) => {
       enabled.set(id, on);
       forecastLayers.get(id)?.setVisible(on);
+      gpuLayers.get(id)?.setVisible(on);
       renderFrames();
     },
     onLocate: () => requestLocation(true),
@@ -75,11 +89,23 @@ worker.postMessage({
   layerIds: LAYERS.map((l) => l.id),
   downsample,
   canvasWidth,
+  sendFrameBytes: useGpu,
 } satisfies MainToWorker);
 
 let frameStore: FrameStore | null = null;
 let initTime: Date | null = null;
 const forecastLayers = new Map<string, ForecastLayer>();
+// GPU layers exist from startup so frames arriving before the basemap loads
+// are kept; they attach to the map in maybeAddLayers().
+const gpuLayers = new Map<string, GpuForecastLayer>(
+  useGpu
+    ? [SMOKE_LAYER, PRECIP_LAYER].map((config) => [
+        config.id,
+        new GpuForecastLayer(config.id, HRRR_GRID, downsample, makeLut(COLORMAPS[config.id])),
+      ])
+    : [],
+);
+let layersAdded = false;
 let placement: OverlayPlacement | null = null;
 let started = false;
 let mapLoaded = false;
@@ -95,12 +121,19 @@ map.on("load", () => {
 });
 
 function maybeAddLayers(): void {
-  if (!mapLoaded || !placement || forecastLayers.size > 0) return;
+  if (!mapLoaded || !placement || layersAdded) return;
+  layersAdded = true;
   // Smoke below precip so rain cells stay readable over smoke plumes.
   for (const config of [SMOKE_LAYER, PRECIP_LAYER]) {
-    const layer = new ForecastLayer(map, config.id, placement);
-    layer.addTo();
-    forecastLayers.set(config.id, layer);
+    const gpuLayer = gpuLayers.get(config.id);
+    if (gpuLayer) {
+      map.addLayer(gpuLayer);
+      gpuLayer.setVisible(enabled.get(config.id) ?? true);
+    } else {
+      const layer = new ForecastLayer(map, config.id, placement);
+      layer.addTo();
+      forecastLayers.set(config.id, layer);
+    }
   }
   renderFrames();
 }
@@ -122,8 +155,31 @@ function renderFrames(): void {
   renderQueued = true;
   requestAnimationFrame(() => {
     renderQueued = false;
-    requestPaint();
+    if (useGpu) updateGpuLayers();
+    else requestPaint();
   });
+}
+
+/**
+ * Point each GPU layer at its bracketing frames + blend; a repaint costs one
+ * map render, so no blend quantization or repaint dedup is needed.
+ */
+function updateGpuLayers(): void {
+  if (!frameStore) return;
+  const start = performance.now();
+  let dirty = false;
+  for (const [id, layer] of gpuLayers) {
+    if (!enabled.get(id)) continue;
+    const n = frameStore.neighbors(id, timeline.t);
+    if (!n) continue;
+    if (layer.setTime(n.a, n.b, n.blend)) dirty = true;
+  }
+  if (dirty) {
+    map.triggerRepaint();
+    // Main-thread cost of one overlay refresh; tests/e2e/perf.spec.ts
+    // watches this to catch work sliding back onto the main thread.
+    performance.measure("overlay-update", { start });
+  }
 }
 
 /**
@@ -186,15 +242,20 @@ worker.onmessage = (ev: MessageEvent<WorkerToMain>) => {
       break;
     }
     case "frameLoaded": {
+      if (msg.data) gpuLayers.get(msg.layerId)?.setFrame(msg.leadIndex, msg.data);
       frameStore?.markLoaded(msg.layerId, msg.leadIndex);
       break;
     }
     case "painted": {
       paintInFlight = false;
+      const start = performance.now();
       for (const f of msg.frames) {
         forecastLayers.get(f.layerId)?.render(f.pixels);
         pixelPool.push(f.pixels.buffer);
       }
+      // Main-thread cost of one overlay refresh; tests/e2e/perf.spec.ts
+      // watches this to catch work sliding back onto the main thread.
+      if (msg.frames.length > 0) performance.measure("overlay-update", { start });
       // Catch up on anything that changed while this paint was in flight.
       requestPaint();
       break;

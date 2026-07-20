@@ -24,6 +24,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium-desktop",
+      testIgnore: "**/perf.spec.ts",
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 800 },
@@ -31,10 +32,24 @@ export default defineConfig({
     },
     {
       name: "webkit-iphone",
+      testIgnore: "**/perf.spec.ts",
       use: {
         ...devices["iPhone 14"],
         // Keep committed snapshots small; layout is what we're guarding.
         deviceScaleFactor: 1,
+      },
+    },
+    {
+      // Timing measurements need the machine to themselves: run after the
+      // functional projects, one test at a time.
+      name: "perf",
+      testMatch: "**/perf.spec.ts",
+      dependencies: ["chromium-desktop", "webkit-iphone"],
+      fullyParallel: false,
+      workers: 1,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 800 },
       },
     },
   ],
