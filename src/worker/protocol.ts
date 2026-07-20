@@ -14,7 +14,22 @@ export interface LoadAllRequest {
   type: "loadAll";
 }
 
-export type MainToWorker = OpenRequest | LoadAllRequest;
+/** One overlay to paint: bracketing lead indices and a blend fraction. */
+export interface PaintJob {
+  layerId: string;
+  a: number;
+  b: number;
+  blend: number;
+}
+
+export interface PaintRequest {
+  type: "paint";
+  jobs: PaintJob[];
+  /** Spent RGBA buffers returned for reuse (transferred). */
+  recycle: ArrayBuffer[];
+}
+
+export type MainToWorker = OpenRequest | LoadAllRequest | PaintRequest;
 
 export interface OpenedMessage {
   type: "opened";
@@ -22,23 +37,24 @@ export interface OpenedMessage {
   initTimeMs: number;
   /** Lead offsets, hours. */
   leadHours: number[];
-  /** Downsampled frame dimensions. */
-  gridNy: number;
-  gridNx: number;
-  /** Reprojection index map (transferred). */
+  /** Overlay canvas dimensions (the index map stays in the worker). */
   indexWidth: number;
   indexHeight: number;
-  indices: Int32Array;
   /** Canvas corner lon/lats: TL, TR, BR, BL. */
   corners: [number, number][];
 }
 
-export interface FrameMessage {
-  type: "frame";
+/** A frame arrived and is paintable; the bytes stay in the worker. */
+export interface FrameLoadedMessage {
+  type: "frameLoaded";
   layerId: string;
   leadIndex: number;
-  /** Quantized bytes (transferred), gridNy x gridNx. */
-  data: Uint8Array;
+}
+
+export interface PaintedMessage {
+  type: "painted";
+  /** One entry per painted job; RGBA canvas pixels (transferred). */
+  frames: { layerId: string; pixels: Uint8ClampedArray<ArrayBuffer> }[];
 }
 
 export interface ProgressMessage {
@@ -63,7 +79,8 @@ export interface FatalErrorMessage {
 
 export type WorkerToMain =
   | OpenedMessage
-  | FrameMessage
+  | FrameLoadedMessage
+  | PaintedMessage
   | ProgressMessage
   | FrameErrorMessage
   | FatalErrorMessage;

@@ -1,7 +1,8 @@
 /**
- * Main-thread store of quantized forecast frames, indexed by layer and lead
- * hour, with lookup of the nearest loaded frames around a fractional time
- * for crossfaded rendering while later passes are still downloading.
+ * Main-thread tracker of which forecast frames the worker holds, indexed by
+ * layer and lead hour, with lookup of the nearest loaded frames around a
+ * fractional time for crossfaded rendering while later passes are still
+ * downloading. The frame bytes themselves stay in the worker.
  */
 
 export interface FrameNeighbors {
@@ -14,21 +15,21 @@ export interface FrameNeighbors {
 }
 
 export class FrameStore {
-  private readonly frames = new Map<string, (Uint8Array | null)[]>();
+  private readonly loaded = new Map<string, boolean[]>();
   readonly leadHours: number[];
   private listeners: (() => void)[] = [];
 
   constructor(layerIds: string[], leadHours: number[]) {
     this.leadHours = leadHours;
     for (const id of layerIds) {
-      this.frames.set(id, new Array<Uint8Array | null>(leadHours.length).fill(null));
+      this.loaded.set(id, new Array<boolean>(leadHours.length).fill(false));
     }
   }
 
-  addFrame(layerId: string, leadIndex: number, data: Uint8Array): void {
-    const arr = this.frames.get(layerId);
+  markLoaded(layerId: string, leadIndex: number): void {
+    const arr = this.loaded.get(layerId);
     if (!arr || leadIndex < 0 || leadIndex >= arr.length) return;
-    arr[leadIndex] = data;
+    arr[leadIndex] = true;
     for (const cb of this.listeners) cb();
   }
 
@@ -36,13 +37,13 @@ export class FrameStore {
     this.listeners.push(cb);
   }
 
-  getFrame(layerId: string, leadIndex: number): Uint8Array | null {
-    return this.frames.get(layerId)?.[leadIndex] ?? null;
+  isLoaded(layerId: string, leadIndex: number): boolean {
+    return this.loaded.get(layerId)?.[leadIndex] ?? false;
   }
 
   loadedCount(layerId: string): number {
     let n = 0;
-    for (const f of this.frames.get(layerId) ?? []) if (f) n++;
+    for (const f of this.loaded.get(layerId) ?? []) if (f) n++;
     return n;
   }
 
@@ -56,7 +57,7 @@ export class FrameStore {
    * nothing is loaded for the layer yet.
    */
   neighbors(layerId: string, t: number): FrameNeighbors | null {
-    const arr = this.frames.get(layerId);
+    const arr = this.loaded.get(layerId);
     if (!arr) return null;
     const hours = this.leadHours;
     let below = -1;
