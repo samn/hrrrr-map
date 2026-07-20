@@ -8,6 +8,11 @@ export interface OpenRequest {
   downsample: number;
   /** Canvas width in pixels for the reprojection index map. */
   canvasWidth: number;
+  /**
+   * Transfer quantized frame bytes to the main thread as they load (GPU
+   * renderer) instead of keeping them worker-side for paint requests.
+   */
+  sendFrameBytes: boolean;
 }
 
 export interface LoadAllRequest {
@@ -44,11 +49,16 @@ export interface OpenedMessage {
   corners: [number, number][];
 }
 
-/** A frame arrived and is paintable; the bytes stay in the worker. */
+/**
+ * A frame arrived and is paintable. The bytes stay in the worker unless the
+ * open request set `sendFrameBytes`, in which case they are transferred here
+ * (quantized values, frame ny x nx) and the worker keeps nothing.
+ */
 export interface FrameLoadedMessage {
   type: "frameLoaded";
   layerId: string;
   leadIndex: number;
+  data?: Uint8Array;
 }
 
 export interface PaintedMessage {

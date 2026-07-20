@@ -41,7 +41,19 @@ export interface LccProjection {
   inverse(x: number, y: number): [lonDeg: number, latDeg: number];
 }
 
-export function makeLccProjection(grid: LccGrid): LccProjection {
+/** Precomputed projection constants (also consumed by the GPU shader). */
+export interface LccConstants {
+  /** Cone constant. */
+  n: number;
+  /** R * F (metres). */
+  rf: number;
+  /** Radius of the reference parallel (metres). */
+  rho0: number;
+  /** Orientation longitude, radians. */
+  lam0: number;
+}
+
+export function makeLccConstants(grid: LccGrid): LccConstants {
   const phi1 = grid.latin1 * DEG;
   const phi2 = grid.latin2 * DEG;
   const lam0 = grid.lov * DEG;
@@ -54,6 +66,12 @@ export function makeLccProjection(grid: LccGrid): LccProjection {
         Math.log(Math.tan(Math.PI / 4 + phi2 / 2) / Math.tan(Math.PI / 4 + phi1 / 2));
   const F = (Math.cos(phi1) * Math.tan(Math.PI / 4 + phi1 / 2) ** n) / n;
   const rho0 = (R * F) / Math.tan(Math.PI / 4 + phi1 / 2) ** n;
+  return { n, rf: R * F, rho0, lam0 };
+}
+
+export function makeLccProjection(grid: LccGrid): LccProjection {
+  const { n, rf, rho0, lam0 } = makeLccConstants(grid);
+  const RF = rf;
 
   function forward(lonDeg: number, latDeg: number): [number, number] {
     const phi = latDeg * DEG;
@@ -61,7 +79,7 @@ export function makeLccProjection(grid: LccGrid): LccProjection {
     // Wrap to (-pi, pi] so 0..360 and -180..180 longitudes behave identically.
     while (dlam > Math.PI) dlam -= 2 * Math.PI;
     while (dlam < -Math.PI) dlam += 2 * Math.PI;
-    const rho = (R * F) / Math.tan(Math.PI / 4 + phi / 2) ** n;
+    const rho = RF / Math.tan(Math.PI / 4 + phi / 2) ** n;
     const theta = n * dlam;
     return [rho * Math.sin(theta), rho0 - rho * Math.cos(theta)];
   }
@@ -70,7 +88,7 @@ export function makeLccProjection(grid: LccGrid): LccProjection {
     const sign = n >= 0 ? 1 : -1;
     const rho = sign * Math.hypot(x, rho0 - y);
     const theta = Math.atan2(sign * x, sign * (rho0 - y));
-    const lat = (2 * Math.atan(((R * F) / rho) ** (1 / n)) - Math.PI / 2) / DEG;
+    const lat = (2 * Math.atan((RF / rho) ** (1 / n)) - Math.PI / 2) / DEG;
     let lon = (lam0 + theta / n) / DEG;
     if (lon > 180) lon -= 360;
     if (lon < -180) lon += 360;
